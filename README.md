@@ -12,7 +12,7 @@ A professional-grade, ESP32-C3 based Blood Pressure monitoring system featuring 
 *   **Intelligent Power Management**:
     *   **Light Sleep**: Maximizes battery life while maintaining BLE background connections.
     *   **Charging Mode**: Automatic standby detection with 60s OLED protection and charging time estimation.
-*   **User Interface**: 128x32 OLED display with screen flip support (P1 button) and Event Marking (P2 button).
+*   **User Interface**: 128x32 OLED display with screen flip support (Flip button) and Event Marking (Event button).
 *   **Data Integrity**: Stored measurements in Flash with POSIX timestamping and History Dump via BLE.
 
 ## 🛠️ Hardware Specifications
@@ -22,16 +22,17 @@ A professional-grade, ESP32-C3 based Blood Pressure monitoring system featuring 
 | **Microcontroller** | ESP32-C3 (RISC-V) | Native |
 | **Pressure Sensor** | WF100D (0-40kPa) | I2C (GPIO 0/1) |
 | **Display** | SSD1306 OLED (128x32) | I2C (GPIO 0/1) |
-| **I/O Expander** | PCF8574 | I2C (GPIO 0/1) |
-| **Buzzer** | Active Piezo | GPIO 19 (LEDC PWM) |
+| **Buzzer** | Active Piezo | GPIO 7 (LEDC PWM) |
 | **Battery Sensing** | 100k/100k Divider | GPIO 2 (ADC) |
-| **VBUS Sensing** | USB Detection | GPIO 6 |
+| **VBUS Sensing** | USB Detection | GPIO 3 |
 
 ### Pinout (ESP32-C3)
 *   **SDA/SCL**: GPIO 0 / GPIO 1
-*   **Motor/Valve**: GPIO 10 / GPIO 3
-*   **Wake Button**: GPIO 18
-*   **Buzzer**: GPIO 19
+*   **Motor/Valve**: GPIO 19 / GPIO 18
+*   **Wake / Start Buttons**: GPIO 6 / GPIO 4
+*   **Flip / Event Buttons**: GPIO 10 / GPIO 5
+*   **Buzzer**: GPIO 7
+*   **VBUS Detection**: GPIO 3
 
 ## 📂 Repository Structure
 
@@ -54,7 +55,7 @@ A professional-grade, ESP32-C3 based Blood Pressure monitoring system featuring 
 3.  **Flash**:
     *   Select **ESP32C3 Dev Module**.
     *   Partition Scheme: **Default 4MB with SPIFFS**.
-4.  **Usage**: Hold IO18 for 2 seconds to power on.
+4.  **Usage**: Hold IO6 for 3 seconds to power on.
 
 ## ⚖️ License
 This project is for educational and R&D purposes. Measurement results should be verified against clinical standards.
