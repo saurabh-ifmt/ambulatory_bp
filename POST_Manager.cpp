@@ -74,10 +74,6 @@ bool POST_Manager::run(bool isGenuineReset) {
              sensorFound ? "Found — WF100D OK" : "NOT FOUND — BP measurement impossible");
     if (!sensorFound) RECORD_FAIL("Pressure Sensor Missing", "No ACK at I2C 0x6D");
 
-    // ── Test 3: PCF8574 I/O Expander (I2C 0x20) — WARNING ────────────────────
-    bool pcfFound = _postProbeI2C(PCF8574_ADDR);
-    _postLog(pcfFound, false, "PCF8574 Buttons (0x20)",
-             pcfFound ? "Found — P1/P2/P3 OK" : "NOT FOUND — hardware buttons disabled");
 
     // ── Test 4: SPIFFS Filesystem — WARNING ───────────────────────────────────
     // Calibration_Manager::init() already called SPIFFS.begin() earlier in setup().
