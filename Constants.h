@@ -3,14 +3,14 @@
 
 // Pin definitions (ESP32-C3) — Final PCB rev
 #define ANALOG_PIN 2       // Battery ADC input pin
-#define MOTOR_PIN 19       // IO19 - Motor PWM
+#define MOTOR_PIN 3        // IO3  - Motor PWM (moved from IO19; IO19=USB D+, triggers on USB plug-in)
 #define VALVE_PIN 18       // IO18 - Valve PWM
 #define PRESSURE_SDA 0     // I2C SDA pin
 #define PRESSURE_SCL 1     // I2C SCL pin
 #define BUTTON_WAKE_PIN  6   // IO6  - SW1: Wake / Power / Screen Toggle
 #define BUZZER_PIN       7   // IO7  - Active Buzzer driven via LEDC PWM
 #define BATTERY_PIN      2   // IO2  - Battery Voltage (same as ANALOG_PIN)
-#define VBUS_PIN         3   // IO3  - Charger/VBUS Detection (reserved for future use)
+#define VBUS_PIN         19  // IO19 - Charger/VBUS Detection (reserved for future use; IO19 now free)
 
 // Direct GPIO buttons (replaces PCF8574 I2C expander)
 #define BTN_START_PIN    10  // IO10 - SW2: Start / Stop Measurement
