@@ -82,25 +82,8 @@ const uint32_t SCREEN_TIMEOUT_MS = 60000;
 bool measurementStartedViaBLE = false;
 bool g_resultsNeedRedraw = true; // Reset each new measurement, forces result screen redraw
 
-// ── PCF8574 Button Helper ──────────────────────────────────────────────────
-// Reads one byte from PCF8574. Only START button is on P3 (active LOW).
-// WAKE button is on GPIO18 (direct digitalRead).
-static uint8_t _readPCF8574Buttons() {
-    uint8_t bytesReceived = Wire.requestFrom((uint8_t)PCF8574_ADDR, (uint8_t)1);
-    if (bytesReceived == 0) {
-        Serial.printf("[PCF_DBG] I2C ERROR: requestFrom(0x%02X) returned 0 bytes! Bus issue or wrong address.\n", PCF8574_ADDR);
-        return 0xFF; // Default: all HIGH = no buttons pressed
-    }
-    if (Wire.available()) {
-        uint8_t val = Wire.read();
-        return val;
-    }
-    Serial.println("[PCF_DBG] I2C ERROR: requestFrom OK but Wire.available() = 0. Unexpected.");
-    return 0xFF;
-}
-// Blocking helper used in MAINTENANCE_MENU power-off wait
+// Blocking helper used in power-off wait
 static bool _wakeButtonPressed() { return (digitalRead(BUTTON_WAKE_PIN) == LOW); }
-// ─────────────────────────────────────────────────────────────────────────────
 
 // BLE Advertising Timeout (independent of screen state)
 uint32_t bleAdvertisingStartTime = 0;  // Time when advertising started
@@ -324,14 +307,12 @@ void setup() {
   Serial.println("[DEBUG] Mounting SPIFFS...");
   Calibration_Manager::init(); // Handled internally by SPIFFS.begin now
   
-  // Initialize WAKE button on GPIO18 (direct GPIO, also used for light-sleep wakeup)
-  pinMode(BUTTON_WAKE_PIN, INPUT_PULLUP);
-  // Initialize PCF8574 — write 0xFF to set all pins as inputs with pull-ups
-  // START button is on P3; P4 is free.
-  Wire.beginTransmission(PCF8574_ADDR);
-  Wire.write(0xFF);
-  Wire.endTransmission();
-  Serial.println("[System] GPIO18 (WAKE) + PCF8574 (START=P3) initialized.");
+  // Initialize all buttons as direct GPIO inputs (active LOW, external pull-ups on PCB)
+  pinMode(BUTTON_WAKE_PIN, INPUT_PULLUP);  // IO6  - SW1: Wake / Power
+  pinMode(BTN_START_PIN,   INPUT_PULLUP);  // IO10 - SW2: Start / Stop
+  pinMode(BTN_FLIP_PIN,    INPUT_PULLUP);  // IO4  - SW3: Screen Flip
+  pinMode(BTN_EVENT_PIN,   INPUT_PULLUP);  // IO5  - SW4: Event Marker
+  Serial.println("[System] Buttons (SW1-SW4) initialized as direct GPIO inputs.");
   lastActivityTime = millis();
   
   Serial.println("[DEBUG] Reading calibration...");
@@ -376,31 +357,21 @@ void loop() {
   Buzzer_Handler::tick(); // Process any active non-blocking beep patterns (like pre-alarm)
   BLE_Handler& bleHandler = BLE_Handler::getInstance();
   
-  // WAKE button: direct GPIO18 read (fast, also supports sleep wakeup)
-  // START button: PCF8574 P3 via I2C
-  bool wakePressed  = (digitalRead(BUTTON_WAKE_PIN) == LOW);
-  uint8_t _pcfByte  = _readPCF8574Buttons();
-  bool startPressed = !(_pcfByte & PCF8574_BTN_START_MASK);  // P3 LOW = pressed
+  // All buttons are now direct GPIO reads (active LOW, external pull-ups on PCB)
+  bool wakePressed  = (digitalRead(BUTTON_WAKE_PIN) == LOW); // IO6  - SW1
+  bool startPressed = (digitalRead(BTN_START_PIN)   == LOW); // IO10 - SW2
+  bool flipPressed  = (digitalRead(BTN_FLIP_PIN)    == LOW); // IO4  - SW3
+  bool eventPressed = (digitalRead(BTN_EVENT_PIN)   == LOW); // IO5  - SW4
   static uint32_t lastUIPrintTime = millis() - 2001;
 
-  bool flipPressed  = !(_pcfByte & PCF8574_BTN_FLIP_MASK);  // P1 LOW = pressed
-  bool eventPressed = !(_pcfByte & PCF8574_BTN_EVENT_MASK); // P2 LOW = pressed
-
-  // [PCF_DEBUG] Print only when a button state changes
-  static uint8_t _lastPcfByte = 0xFF;
-  static bool    _lastWake = false;
-  if (_pcfByte != _lastPcfByte || wakePressed != _lastWake) {
-    if (startPressed || flipPressed || eventPressed || wakePressed) {
-       Serial.printf("[PCF_DBG] Raw=0x%02X | P1(flip)=%d | P2(event)=%d | P3(start)=%d | wake=%d | State=%d\n",
-                  _pcfByte,
-                  (_pcfByte >> 1) & 1,
-                  (_pcfByte >> 2) & 1,
-                  (_pcfByte >> 3) & 1,
-                  (int)wakePressed,
-                  (int)currentState);
+  // Debug: print on state change
+  static bool _lastWake = false, _lastStart = false, _lastFlip = false, _lastEvent = false;
+  if (wakePressed != _lastWake || startPressed != _lastStart || flipPressed != _lastFlip || eventPressed != _lastEvent) {
+    if (wakePressed || startPressed || flipPressed || eventPressed) {
+      Serial.printf("[BTN_DBG] wake=%d start=%d flip=%d event=%d | State=%d\n",
+                    (int)wakePressed, (int)startPressed, (int)flipPressed, (int)eventPressed, (int)currentState);
     }
-    _lastPcfByte = _pcfByte;
-    _lastWake = wakePressed;
+    _lastWake = wakePressed; _lastStart = startPressed; _lastFlip = flipPressed; _lastEvent = eventPressed;
   }
 
   // --- 0. CHARGING LOGIC ---
@@ -739,9 +710,7 @@ void loop() {
     io18PressStartTime = 0;
   }
 
-  // E. P1 (PCF8574) Short-Press → Screen Flip 180°
-  // Flips the display orientation instantly.
-  // Useful when the OLED is mounted vertically and needs to be read from the opposite side.
+  // E. SW3 (BTN_FLIP_PIN) Short-Press → Screen Flip 180°
   {
     static uint32_t p1PressStart   = 0;
     static bool     p1FlipFired    = false;
