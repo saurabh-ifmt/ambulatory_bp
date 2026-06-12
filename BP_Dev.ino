@@ -12,7 +12,6 @@
 #include "Storage.h"
 #include "Buzzer_Handler.h"
 #include "POST_Manager.h"
-#include "driver/gpio.h"
 
 // PWM control parameters
 const int PWM_START = 255;            // Starting PWM value
@@ -82,13 +81,6 @@ static bool io18NeedsFreshPress = false;    // Requires full release+press cycle
 const uint32_t SCREEN_TIMEOUT_MS = 60000; 
 bool measurementStartedViaBLE = false;
 bool g_resultsNeedRedraw = true; // Reset each new measurement, forces result screen redraw
-
-// Runs before Arduino framework init — disables USB Serial JTAG PHY so
-// IO18/IO19 are never driven by the USB peripheral on ESP32-C3.
-// This prevents the motor (IO19) and valve (IO18) from activating on USB-C plug-in.
-__attribute__((constructor(101))) static void disableUSBJTAGPHY() {
-    *(volatile uint32_t*)0x60043000 &= ~(1UL << 14);
-}
 
 // Blocking helper used in power-off wait
 static bool _wakeButtonPressed() { return (digitalRead(BUTTON_WAKE_PIN) == LOW); }
@@ -263,22 +255,6 @@ void stopMeasurement() {
 }
 
 void setup() {
-
-  gpio_reset_pin(GPIO_NUM_18);
-  gpio_reset_pin(GPIO_NUM_19);
-
-  // Disable USB Serial JTAG PHY on ESP32-C3.
-  // This releases IO18 (D-) and IO19 (D+) as normal GPIOs so the USB host
-  // cannot drive the valve and motor when USB-C is plugged in.
-  // Register: USB_SERIAL_JTAG_CONF0_REG (0x60043000), bit 14 = USB_PAD_ENABLE
-  *(volatile uint32_t*)0x60043000 &= ~(1UL << 14);
-
-  // Drive motor and valve LOW immediately before ledcAttach() takes over
-  pinMode(MOTOR_PIN, OUTPUT);
-  digitalWrite(MOTOR_PIN, LOW);
-  pinMode(VALVE_PIN, OUTPUT);
-  digitalWrite(VALVE_PIN, LOW);
-
   Serial.begin(115200);
   delay(500);
 
@@ -331,11 +307,11 @@ void setup() {
   Serial.println("[DEBUG] Mounting SPIFFS...");
   Calibration_Manager::init(); // Handled internally by SPIFFS.begin now
   
-  // Initialize button pins (direct GPIO, active LOW)
-  pinMode(BUTTON_WAKE_PIN, INPUT_PULLUP);
-  pinMode(BTN_FLIP_PIN,    INPUT_PULLUP);
-  pinMode(BTN_START_PIN,   INPUT_PULLUP);
-  pinMode(BTN_EVENT_PIN,   INPUT_PULLUP);
+  // Initialize all button pins — direct GPIO, active LOW
+  pinMode(BUTTON_WAKE_PIN, INPUT_PULLUP);  // IO10 - SW_2
+  pinMode(BTN_FLIP_PIN,    INPUT_PULLUP);  // IO6  - SW_1
+  pinMode(BTN_START_PIN,   INPUT_PULLUP);  // IO4  - SW_3
+  pinMode(BTN_EVENT_PIN,   INPUT_PULLUP);  // IO5  - SW_4
   Serial.println("[System] Buttons initialized: WAKE=IO10, FLIP=IO6, START=IO4, EVENT=IO5");
   lastActivityTime = millis();
   
@@ -381,11 +357,43 @@ void loop() {
   Buzzer_Handler::tick(); // Process any active non-blocking beep patterns (like pre-alarm)
   BLE_Handler& bleHandler = BLE_Handler::getInstance();
   
-  bool wakePressed  = (digitalRead(BUTTON_WAKE_PIN) == LOW);
-  bool startPressed = (digitalRead(BTN_START_PIN)   == LOW);
-  bool flipPressed  = (digitalRead(BTN_FLIP_PIN)    == LOW);
-  bool eventPressed = (digitalRead(BTN_EVENT_PIN)   == LOW);
+  // Read all buttons — direct GPIO, active LOW
+  bool wakePressed  = (digitalRead(BUTTON_WAKE_PIN) == LOW);  // IO10 - SW_2
+  bool startPressed = (digitalRead(BTN_START_PIN)   == LOW);  // IO4  - SW_3
+  bool flipPressed  = (digitalRead(BTN_FLIP_PIN)    == LOW);  // IO6  - SW_1
+  bool eventPressed = (digitalRead(BTN_EVENT_PIN)   == LOW);  // IO5  - SW_4
   static uint32_t lastUIPrintTime = millis() - 2001;
+
+  // --- 0. CHARGING LOGIC ---
+  static bool wasCharging = false;
+  bool isChargingNow = Display_Handler::isCharging();
+  int chargingMinsToFull = 0;
+  
+  if (isChargingNow) {
+      if (!wasCharging) {
+          Serial.println("[System] Charger connected -> Entering Standby");
+          if (!measuring) {
+              currentState = WAIT_FOR_START;
+              screenOn = false;
+              Display_Handler::off();
+          }
+          wasCharging = true;
+      }
+      
+      // Calculate estimated minutes to full charge
+      uint8_t curB = Display_Handler::getBatteryPercent();
+      if (curB < 100) {
+          float remainingMah = BATTERY_CAPACITY_MAH * (1.0f - (curB / 100.0f));
+          chargingMinsToFull = (int)((remainingMah / CHARGE_CURRENT_MA) * 60.0f);
+      }
+  } else if (wasCharging) {
+      Serial.println("[System] Charger removed -> Auto-waking");
+      currentState = IDLE;
+      screenOn = true;
+      Display_Handler::on();
+      lastActivityTime = millis();
+      wasCharging = false;
+  }
 
   // --- 1. SYSTEM STATE GUARDS (Top Priority) ---
   if (currentState == WAIT_FOR_START) {
@@ -449,7 +457,11 @@ void loop() {
           menuTriggeredThisPress = false;
           io18UnlockCooldownTime = millis();
         } else if (millis() - unlockStartTime > 500) {
-          // Screen stays dark while holding until the 3s unlock threshold
+          // While holding, keep the screen OFF or only show charging info if plugged in.
+          if (Display_Handler::isCharging()) {
+              Display_Handler::showChargingIdle(Display_Handler::getBatteryPercent(), chargingMinsToFull);
+          }
+          // No 'showWaitForStart' here anymore, so it stays dark until the 3s threshold.
         }
     } else {
        // Release edge: detect short tap (< 1500ms)
@@ -460,6 +472,13 @@ void loop() {
        standbyWasPressed = false;
     }
     
+    // 1-minute auto-off ONLY during charging to protect screen
+    if (screenOn && Display_Handler::isCharging() && (millis() - lastActivityTime > 60000)) {
+        Serial.println("[Charging] Auto-dimming screen (60s timeout)");
+        screenOn = false;
+        Display_Handler::off();
+    }
+
     return; // Block everything else in standby
   }
 
@@ -681,7 +700,7 @@ void loop() {
     io18PressStartTime = 0;
   }
 
-  // E. P1 (PCF8574) Short-Press → Screen Flip 180°
+  // E. BTN_FLIP (IO6/SW_1) Short-Press → Screen Flip 180°
   // Flips the display orientation instantly.
   // Useful when the OLED is mounted vertically and needs to be read from the opposite side.
   {

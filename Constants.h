@@ -2,17 +2,17 @@
 #define CONSTANTS_H
 
 // Pin definitions (ESP32-C3)
-#define ANALOG_PIN 2       // Battery ADC input pin
+#define ANALOG_PIN       2   // IO2  - Battery ADC input pin
 #define MOTOR_PIN        19  // IO19 - Motor PWM pin
 #define VALVE_PIN        18  // IO18 - Valve PWM pin
-#define PRESSURE_SDA 0     // I2C SDA pin (Hardware requirement)
-#define PRESSURE_SCL 1     // I2C SCL pin (Hardware requirement)
+#define PRESSURE_SDA     0   // IO0  - I2C SDA
+#define PRESSURE_SCL     1   // IO1  - I2C SCL
 #define BUTTON_WAKE_PIN  10  // IO10 - SW_2 - Wake / Power / Screen Toggle
-#define BUZZER_PIN        7  // IO7  - Active Buzzer driven via LEDC PWM
-#define BATTERY_PIN       2  // IO2  - Battery Voltage (same as ANALOG_PIN)
-#define VBUS_PIN          8  // IO8 - Reserved for future VBUS/charger detection (not connected in PCB v1)
+#define BUZZER_PIN        7  // IO7  - Active Buzzer
+#define BATTERY_PIN       2  // IO2  - Battery Voltage
+#define VBUS_PIN          8  // IO8  - Reserved for future VBUS detection (not connected in PCB v1)
 
-// Button pins (direct GPIO, no I2C expander)
+// Button pins — direct GPIO (no I2C expander on new PCB)
 #define BTN_FLIP_PIN      6  // IO6  - SW_1 - Screen orientation flip
 #define BTN_START_PIN     4  // IO4  - SW_3 - Start / Stop measurement
 #define BTN_EVENT_PIN     5  // IO5  - SW_4 - Event marker
