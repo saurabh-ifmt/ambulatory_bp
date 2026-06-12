@@ -2,15 +2,20 @@
 #define CONSTANTS_H
 
 // Pin definitions (ESP32-C3)
-#define ANALOG_PIN 2       // Battery ADC input pin
-#define MOTOR_PIN 10       // Motor PWM pin (Hardware requirement)
-#define VALVE_PIN 3        // Valve PWM pin (Hardware requirement)
-#define PRESSURE_SDA 0     // I2C SDA pin (Hardware requirement)
-#define PRESSURE_SCL 1     // I2C SCL pin (Hardware requirement)
-#define BUTTON_WAKE_PIN  18  // IO18 - Wake / Power / Screen Toggle (direct GPIO, enables sleep wakeup)
-#define BUZZER_PIN       19  // IO19 - Active Buzzer driven via LEDC PWM (bypasses USB D+ GPIO weakness)
-#define BATTERY_PIN      2   // IO2  - Battery Voltage (same as ANALOG_PIN)
-#define VBUS_PIN         6   // IO6  - Charger/VBUS Detection
+#define ANALOG_PIN       2   // IO2  - Battery ADC input pin
+#define MOTOR_PIN        19  // IO19 - Motor PWM pin
+#define VALVE_PIN        18  // IO18 - Valve PWM pin
+#define PRESSURE_SDA     0   // IO0  - I2C SDA
+#define PRESSURE_SCL     1   // IO1  - I2C SCL
+#define BUTTON_WAKE_PIN  10  // IO10 - SW_2 - Wake / Power / Screen Toggle
+#define BUZZER_PIN        7  // IO7  - Active Buzzer
+#define BATTERY_PIN       2  // IO2  - Battery Voltage
+#define VBUS_PIN          8  // IO8  - Reserved for future VBUS detection (not connected in PCB v1)
+
+// Button pins — direct GPIO (no I2C expander on new PCB)
+#define BTN_FLIP_PIN      6  // IO6  - SW_1 - Screen orientation flip
+#define BTN_START_PIN     4  // IO4  - SW_3 - Start / Stop measurement
+#define BTN_EVENT_PIN     5  // IO5  - SW_4 - Event marker
 
 // Battery Estimation Constants
 #define BATTERY_CAPACITY_MAH  500.0f  // Adjust to your actual battery mAh
@@ -20,12 +25,6 @@
 #define BUZZER_FREQ       2000  // 2kHz — clearly audible, works with active buzzer
 #define BUZZER_RESOLUTION    8  // 8-bit resolution → duty range 0–255
 #define BUZZER_DUTY        128  // 50% duty cycle — buzzer ON state
-
-// PCF8574 I2C Expander (0x20 = A0/A1/A2 all GND)
-#define PCF8574_ADDR           0x20
-#define PCF8574_BTN_FLIP_MASK  (1 << 1)  // P1 - Screen orientation flip (short press)
-#define PCF8574_BTN_EVENT_MASK (1 << 2)  // P2 - Event Marker button
-#define PCF8574_BTN_START_MASK (1 << 3)  // P3 - Start / Stop Measurement button
 
 // Constants
 #define BP_FS 50          // Sampling frequency in Hz
