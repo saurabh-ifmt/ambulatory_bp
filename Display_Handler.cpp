@@ -86,8 +86,6 @@ namespace Display_Handler {
 void init() {
     Wire.begin(PRESSURE_SDA, PRESSURE_SCL);
     
-    // Safety: Set VBUS pin as input with pulldown to prevent floating
-    pinMode(VBUS_DETECT_PIN, INPUT_PULLDOWN);
     pinMode(BATTERY_ADC_PIN, ANALOG);
 
     if (!display.begin(OLED_ADDRESS, true)) {
@@ -486,7 +484,7 @@ uint8_t getBatteryPercent() {
 }
 
 bool isCharging() {
-    return (digitalRead(VBUS_DETECT_PIN) == HIGH);
+    return false; // VBUS detection not available on this PCB
 }
 
 bool isBatteryCritical() {

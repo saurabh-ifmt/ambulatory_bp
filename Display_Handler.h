@@ -10,6 +10,9 @@
 #define OLED_WIDTH      128
 #define OLED_HEIGHT     128
 
+// VBUS Detection (reserved for future use — not connected in PCB v1)
+#define VBUS_DETECT_PIN      VBUS_PIN
+
 // Battery ADC
 // Assumes a voltage divider from VDD (battery) to this pin
 // e.g., 100K + 100K → ADC reads Vbat/2. Adjust BATTERY_DIVIDER_RATIO as needed.
@@ -19,9 +22,6 @@
 #define BATTERY_MAX_V        4.2f      // 100% charge
 #define BATTERY_MIN_V        3.1f      // 0% charge / deep sleep threshold
 
-// VBUS Detection (Charger connected)
-// Connect USB VBUS (5V) through 100K + 100K voltage divider to this GPIO
-#define VBUS_DETECT_PIN      VBUS_PIN
 
 namespace Display_Handler {
     void init();
