@@ -7,15 +7,15 @@
 #define VALVE_PIN 18       // IO18 - Valve PWM
 #define PRESSURE_SDA 0     // I2C SDA pin
 #define PRESSURE_SCL 1     // I2C SCL pin
-#define BUTTON_WAKE_PIN  6   // IO6  - SW1: Wake / Power / Screen Toggle
 #define BUZZER_PIN       7   // IO7  - Active Buzzer driven via LEDC PWM
 #define BATTERY_PIN      2   // IO2  - Battery Voltage (same as ANALOG_PIN)
 #define VBUS_PIN         19  // IO19 - Charger/VBUS Detection (reserved for future use; IO19 now free)
 
 // Direct GPIO buttons (replaces PCF8574 I2C expander)
-#define BTN_START_PIN    10  // IO10 - SW2: Start / Stop Measurement
-#define BTN_FLIP_PIN     4   // IO4  - SW3: Screen orientation flip
+#define BUTTON_WAKE_PIN  10  // IO10 - SW2: Wake / Power / Screen Toggle
+#define BTN_START_PIN    4   // IO4  - SW3: Start / Stop Measurement
 #define BTN_EVENT_PIN    5   // IO5  - SW4: Event Marker
+#define BTN_FLIP_PIN     6   // IO6  - SW1: Screen orientation flip
 
 // Battery Estimation Constants
 #define BATTERY_CAPACITY_MAH  500.0f  // Adjust to your actual battery mAh

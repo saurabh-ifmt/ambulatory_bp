@@ -330,10 +330,10 @@ void setup()
   Calibration_Manager::init(); // Handled internally by SPIFFS.begin now
 
   // Initialize all buttons as direct GPIO inputs (active LOW, external pull-ups on PCB)
-  pinMode(BUTTON_WAKE_PIN, INPUT_PULLUP); // IO6  - SW1: Wake / Power
-  pinMode(BTN_START_PIN, INPUT_PULLUP);   // IO10 - SW2: Start / Stop
-  pinMode(BTN_FLIP_PIN, INPUT_PULLUP);    // IO4  - SW3: Screen Flip
+  pinMode(BUTTON_WAKE_PIN, INPUT_PULLUP); // IO10 - SW2: Wake / Power / Screen Toggle
+  pinMode(BTN_START_PIN, INPUT_PULLUP);   // IO4  - SW3: Start / Stop Measurement
   pinMode(BTN_EVENT_PIN, INPUT_PULLUP);   // IO5  - SW4: Event Marker
+  pinMode(BTN_FLIP_PIN, INPUT_PULLUP);    // IO6  - SW1: Screen Flip
   Serial.println("[System] Buttons (SW1-SW4) initialized as direct GPIO inputs.");
   lastActivityTime = millis();
 
@@ -381,10 +381,10 @@ void loop()
   BLE_Handler &bleHandler = BLE_Handler::getInstance();
 
   // All buttons are now direct GPIO reads (active LOW, external pull-ups on PCB)
-  bool wakePressed = (digitalRead(BUTTON_WAKE_PIN) == LOW); // IO6  - SW1
-  bool startPressed = (digitalRead(BTN_START_PIN) == LOW);  // IO10 - SW2
-  bool flipPressed = (digitalRead(BTN_FLIP_PIN) == LOW);    // IO4  - SW3
-  bool eventPressed = (digitalRead(BTN_EVENT_PIN) == LOW);  // IO5  - SW4
+  bool wakePressed = (digitalRead(BUTTON_WAKE_PIN) == LOW); // IO10 - SW2: Wake / Power
+  bool startPressed = (digitalRead(BTN_START_PIN) == LOW);  // IO4  - SW3: Start / Stop
+  bool flipPressed = (digitalRead(BTN_FLIP_PIN) == LOW);    // IO6  - SW1: Screen Flip
+  bool eventPressed = (digitalRead(BTN_EVENT_PIN) == LOW);  // IO5  - SW4: Event Marker
   static uint32_t lastUIPrintTime = millis() - 2001;
 
   // Debug: print on state change
@@ -448,15 +448,15 @@ void loop()
       lastUIPrintTime = millis();
     }
 
-    if (millis() - standbyStartTime > 60000)
-    {
-      Serial.println("[System] No activity in standby - Powering OFF");
-      Display_Handler::on();
-      Display_Handler::showSleep();
-      delay(1500);
-      Display_Handler::off();
-      ABPM_Manager::goToSleep(false, false);
-    }
+    // if (millis() - standbyStartTime > 60000)
+    // {
+    //   Serial.println("[System] No activity in standby - Powering OFF");
+    //   Display_Handler::on();
+    //   Display_Handler::showSleep();
+    //   delay(1500);
+    //   Display_Handler::off();
+    //   ABPM_Manager::goToSleep(false, false);
+    // }
 
     static uint32_t unlockStartTime = 0;
     static bool standbyWasPressed = false; // Tracks release-edge for short-tap detection
